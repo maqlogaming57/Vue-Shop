@@ -104,9 +104,19 @@ class CartController extends Controller
                     'originType' => 'city',
                     'destination' => $userAddress->prov_id,
                     'destinationType' => 'city',
-                    'weight' => '1700',
-                    'courier' => 'jne',
+                    'weight' => '1',
+                    'courier' => 'jnt',
                 ]);
+
+                if (!$response->successful()) {
+                    dd($response->body()); // Tampilkan respons jika gagal
+                }
+                
+                $costs = $response['rajaongkir']['results'] ?? null;
+                
+                if (!$costs) {
+                    return redirect()->back()->with('errors', 'Failed to fetch shipping costs.');
+                }
 
                 $costs = $response['rajaongkir']['results'];
                 foreach ($costs as $cost) {

@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\UserAddress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Midtrans\Config;
 
@@ -56,14 +57,19 @@ class DashboardController extends Controller
 
         $params = array(
             'transaction_details' => array(
-                'order_id' => $order['order_id'],
+                'order_id' => $order['order_id'] . '-' . time(), // Tambahkan timestamp untuk keunikan
                 'gross_amount' => intval($order['gross_amount']),
             ),
             'customer_details' => array(
-                'first_name' => 'Mr',
+                'first_name' => 'Dear',
                 'last_name' => $user->name,
                 'email' => $user->email,
                 'phone' => $userAddress->no_hp,
+            ),
+            'expiry' => array(
+                'start_time' => date("Y-m-d H:i:s T"),
+                'unit' => 'minutes',
+                'duration' => 60, // Transaksi expired dalam 60 menit
             ),
         );
 //        dd($order);
@@ -83,34 +89,38 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function response(Request $request){
-        $server_key = env('MIDTRANS_SERVER_KEY');
-        $hashed = hash('sha512', $request->order_id.$request->status_code.$request->gross_amount.$server_key);
-        if($hashed == $request->signature_key){
-            if($request->transaction_status == 'settlement'){
-                $order = Order::with('items')->where('order_id',$request->order_id)->first();
-                if($order){
-                    foreach ($order->items as $item){
-                        $product = Product::findOrFail($item->product_id);
-                        $product->quantity -= $item->quantity;
-                        $product->save();
+    public function response(Request $request)
+    {
+        // Ambil data notifikasi dari Midtrans
+        $notification = $request->all();
 
-                        if($product->quantity == 0){
-                            $product->inStock = 0;
-                            $product->save();
-                        }
-                    }
-                }
-                $order->status = 'Paid';
-                $order->paid_at = $request->transaction_time;
-                if($order->save()){
-                    $payment = Payment::where('order_id', $order->id)->first();
-                    $payment->status = 'Success';
-                    $payment->save();
-                }
-            }
+        // Log notifikasi untuk debugging
+        Log::info('Midtrans Notification:', $notification);
+
+        // Validasi notifikasi dengan Midtrans
+        $serverKey = config('services.midtrans.server_key'); // Ambil server key dari konfigurasi
+        $signatureKey = hash('sha512', $notification['order_id'] . $notification['status_code'] . $notification['gross_amount'] . $serverKey);
+
+        if ($signatureKey !== $notification['signature_key']) {
+            return response()->json(['message' => 'Invalid signature'], 403);
         }
 
+        // Proses notifikasi berdasarkan status pembayaran
+        $transactionStatus = $notification['transaction_status'];
+        $orderId = $notification['order_id'];
+
+        if ($transactionStatus == 'capture' || $transactionStatus == 'settlement') {
+            // Pembayaran berhasil
+            Order::where('order_id', $orderId)->update(['status' => 'paid']);
+        } elseif ($transactionStatus == 'pending') {
+            // Pembayaran tertunda
+            Order::where('order_id', $orderId)->update(['status' => 'pending']);
+        } elseif ($transactionStatus == 'deny' || $transactionStatus == 'expire' || $transactionStatus == 'cancel') {
+            // Pembayaran gagal
+            Order::where('order_id', $orderId)->update(['status' => 'failed']);
+        }
+
+        return response()->json(['message' => 'Notification processed successfully']);
     }
 
     /**

@@ -7,7 +7,7 @@
                 src="https://app.sandbox.midtrans.com/snap/snap.js"
                 data-client-key="{{config('midtrans.client_key')}}"></script>
 
-        <title inertia>{{ config('app.name', 'Vue-Soop') }}</title>
+        <title inertia>{{ config('app.name', 'Cakayu.id') }}</title>
         <link rel="icon" type="image/x-icon" href="{{ url('/images/logo.png') }}" />
 
         <!-- Fonts -->

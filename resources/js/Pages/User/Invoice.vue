@@ -24,7 +24,7 @@ const data = usePage().props.data;
                     <div class="flex items-center">
                         <img class="h-8 w-8 mr-2" :src="`/images/logo.png`"
                              alt="Logo" />
-                        <div class="text-gray-700 font-semibold text-xl dark:text-gray-100">Vue-Shop</div>
+                        <div class="text-gray-700 font-semibold text-xl dark:text-gray-100"></div>
                     </div>
                     <div class="text-gray-700 dark:text-gray-200">
                         <div class="font-bold text-xl mb-2 dark:text-gray-100">INVOICE</div>

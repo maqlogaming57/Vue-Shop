@@ -52,7 +52,7 @@ import { Sunny, Moon } from '@element-plus/icons-vue'
                         class="mr-3 h-8"
                         alt="Logo"
                     />
-                    <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">Vue-Shop</span>
+                    <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">Cakayu.id</span>
                 </ResponsiveNavLink>
                 <form action="#" method="GET" class="hidden md:block md:pl-2">
                     <label for="topbar-search" class="sr-only">Search</label>

@@ -25,7 +25,7 @@ const toggleDark = useToggle(isDark);
         <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
             <Link :href="route('home')" class="flex items-center space-x-3  rtl:space-x-reverse">
                 <img :src="`/images/logo.png`" class="h-6 lg:h-8" alt="Logo" />
-                <span class="self-center text-sm lg:text-2xl font-semibold whitespace-nowrap dark:text-white">V-Shop</span>
+                <span class="self-center text-sm lg:text-2xl font-semibold whitespace-nowrap dark:text-white">Cakayu.id</span>
             </Link>
             <div v-if="canLogin" class="flex md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
 <!--                <el-switch-->
