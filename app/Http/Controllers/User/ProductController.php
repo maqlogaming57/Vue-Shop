@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -57,9 +58,15 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
-        $product = Product::with('category', 'brand', 'product_images')->where('id', $product->id)->first();
+        $product->load(['category', 'brand', 'product_images']);
+        
+        $soldQuantity = DB::table('order_items')
+            ->where('product_id', $product->id)
+            ->sum('quantity');
+        
+        $product->available_stock = $product->quantity - ($soldQuantity ?? 0);
 
-        return Inertia::render('User/Product/Show',[
+        return Inertia::render('User/Product/Show', [
             'product' => $product,
         ]);
     }

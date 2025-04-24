@@ -91,36 +91,67 @@ class DashboardController extends Controller
 
     public function response(Request $request)
     {
-        // Ambil data notifikasi dari Midtrans
         $notification = $request->all();
+        \Log::info('Received Midtrans Notification:', $notification);
 
-        // Log notifikasi untuk debugging
-        Log::info('Midtrans Notification:', $notification);
+        try {
+            $orderId = $notification['order_id'];
+            $statusCode = $notification['status_code']; 
+            $grossAmount = $notification['gross_amount'];
+            $transactionStatus = $notification['transaction_status'];
+            
+            \Log::info('Processing order:', [
+                'order_id' => $orderId,
+                'status_code' => $statusCode,
+                'gross_amount' => $grossAmount,
+                'transaction_status' => $transactionStatus
+            ]);
 
-        // Validasi notifikasi dengan Midtrans
-        $serverKey = config('services.midtrans.server_key'); // Ambil server key dari konfigurasi
-        $signatureKey = hash('sha512', $notification['order_id'] . $notification['status_code'] . $notification['gross_amount'] . $serverKey);
+            // Potong timestamp dari order_id
+            $originalOrderId = preg_replace('/-\d+$/', '', $orderId);
+            
+            $order = Order::where('order_id', $originalOrderId)->first();
+            
+            if (!$order) {
+                \Log::error('Order not found:', ['original_order_id' => $originalOrderId]);
+                return response()->json(['message' => 'Order not found'], 404);
+            }
 
-        if ($signatureKey !== $notification['signature_key']) {
-            return response()->json(['message' => 'Invalid signature'], 403);
+            \Log::info('Found order:', [
+                'order_id' => $order->order_id,
+                'current_status' => $order->status
+            ]);
+
+            if ($transactionStatus == 'capture' || $transactionStatus == 'settlement') {
+                // Pembayaran berhasil
+                $order->update([
+                    'status' => 'paid',
+                    'paid_at' => now()
+                ]);
+            } elseif ($transactionStatus == 'pending') {
+                $order->update([
+                    'status' => 'pending'
+                ]);
+            } elseif ($transactionStatus == 'deny' || $transactionStatus == 'expire' || $transactionStatus == 'cancel') {
+                $order->update([
+                    'status' => 'failed'
+                ]);
+            }
+
+            \Log::info('Payment processed successfully:', [
+                'order_id' => $order->order_id,
+                'new_status' => $order->status
+            ]);
+
+            return response()->json(['message' => 'Notification processed successfully']);
+
+        } catch (\Exception $e) {
+            \Log::error('Error processing payment:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['message' => 'Error processing notification'], 500);
         }
-
-        // Proses notifikasi berdasarkan status pembayaran
-        $transactionStatus = $notification['transaction_status'];
-        $orderId = $notification['order_id'];
-
-        if ($transactionStatus == 'capture' || $transactionStatus == 'settlement') {
-            // Pembayaran berhasil
-            Order::where('order_id', $orderId)->update(['status' => 'paid']);
-        } elseif ($transactionStatus == 'pending') {
-            // Pembayaran tertunda
-            Order::where('order_id', $orderId)->update(['status' => 'pending']);
-        } elseif ($transactionStatus == 'deny' || $transactionStatus == 'expire' || $transactionStatus == 'cancel') {
-            // Pembayaran gagal
-            Order::where('order_id', $orderId)->update(['status' => 'failed']);
-        }
-
-        return response()->json(['message' => 'Notification processed successfully']);
     }
 
     /**

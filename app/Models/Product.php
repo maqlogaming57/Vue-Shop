@@ -32,6 +32,11 @@ class Product extends Model
         return $this->hasMany(OrderItem::class, 'product_id');
     }
 
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
     //filter logic for price or categories or brands
 
     public function  scopeFiltered(Builder $quary)  {

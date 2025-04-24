@@ -98,14 +98,14 @@ class CartController extends Controller
             $shippingCosts = [];
             if($userAddress){
                 $response = Http::withHeaders([
-                    'key' => env('RAJAONGKIR_API_KEY'),
+                    'key' => '067f3c3070f9ba9652054f7f1eb0e182',
                 ])->post('https://api.rajaongkir.com/starter/cost', [
                     'origin' => 501, //yogyakarta
                     'originType' => 'city',
                     'destination' => $userAddress->prov_id,
                     'destinationType' => 'city',
                     'weight' => '1',
-                    'courier' => 'jnt',
+                    'courier' => 'jne',
                 ]);
 
                 if (!$response->successful()) {

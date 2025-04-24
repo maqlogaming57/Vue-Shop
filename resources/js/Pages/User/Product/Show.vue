@@ -3,15 +3,39 @@ import {Head, Link, router, usePage} from "@inertiajs/vue3";
 import App from "@/Layouts/App.vue";
 import {ElNotification} from "element-plus";
 import {Splide, SplideSlide} from "@splidejs/vue-splide";
+import { ref } from 'vue';
 
 defineProps({
     product:Object,
 })
 
 const auth = usePage().props.auth;
+const selectedColor = ref('white');
+const selectedSize = ref('M'); // Add this line
+
+const colors = [
+    { name: 'White', class: 'bg-white', selectedClass: 'ring-gray-400', value: 'white' },
+    { name: 'Black', class: 'bg-black', selectedClass: 'ring-gray-900', value: 'black' },
+    { name: 'Red', class: 'bg-red-500', selectedClass: 'ring-red-500', value: 'red' },
+    { name: 'Blue', class: 'bg-blue-500', selectedClass: 'ring-blue-500', value: 'blue' },
+];
+
+const sizes = [
+    { name: 'S', value: 'S' },
+    { name: 'M', value: 'M' },
+    { name: 'L', value: 'L' },
+    { name: 'XL', value: 'XL' },
+    { name: 'XXL', value: 'XXL' },
+    { name: 'XXL', value: 'XXL' },
+    { name: '3L', value: '3L' },
+    { name: '4L', value: '4L' },
+    { name: '5L', value: '5L' },
+];
+
 const addToCart = (product) => {
-    // console.log(product)
     router.post(route('cart.store', product), {
+        color: selectedColor.value,
+        size: selectedSize.value, // Add this line
         onSuccess: (page) => {
             if (page.props.flash.success) {
                 ElNotification({
@@ -23,6 +47,7 @@ const addToCart = (product) => {
         },
     })
 }
+
 const sampleImage = [
     {
         id: 1,
@@ -106,7 +131,69 @@ const sampleImage = [
                         </div>
                         <p class="leading-relaxed dark:text-gray-100">{{ product.description }}</p>
                         <div class="flex mt-6 items-center pb-5 border-b-2 border-gray-100 mb-5">
-                            <p class="text-gray-900 dark:text-gray-100">Stock : {{product.quantity}}</p>
+                            <div class="flex flex-col gap-4">
+                                <!-- Existing color selector -->
+                                <div class="flex items-center">
+                                    <p class="text-gray-900 dark:text-gray-100 mr-6">Stock : {{product.available_stock}}</p>
+                                    
+                                    <div class="flex items-center space-x-3">
+                                        <span class="text-gray-900 dark:text-gray-100">Color :</span>
+                                        <div class="flex items-center space-x-2">
+                                            <template v-for="color in colors" :key="color.name">
+                                                <label
+                                                    :class="[
+                                                        'relative -m-0.5 flex cursor-pointer items-center justify-center rounded-full p-0.5 focus:outline-none',
+                                                        selectedColor === color.value ? 'ring ring-offset-1' : '',
+                                                        color.selectedClass
+                                                    ]"
+                                                >
+                                                    <input 
+                                                        type="radio" 
+                                                        name="color-choice" 
+                                                        :value="color.value" 
+                                                        v-model="selectedColor"
+                                                        class="sr-only"
+                                                    >
+                                                    <span
+                                                        :class="[
+                                                            'h-8 w-8 rounded-full border border-black border-opacity-10',
+                                                            color.class
+                                                        ]"
+                                                        :aria-label="color.name"
+                                                    />
+                                                </label>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Add new size selector -->
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-gray-900 dark:text-gray-100">Size :</span>
+                                    <div class="flex items-center space-x-2">
+                                        <template v-for="size in sizes" :key="size.value">
+                                            <label
+                                                :class="[
+                                                    'relative flex cursor-pointer items-center justify-center rounded-md border py-2 px-4 text-sm font-medium uppercase',
+                                                    selectedSize === size.value 
+                                                        ? 'border-gray-600 bg-gray-100 dark:bg-gray-700' 
+                                                        : 'border-gray-200 dark:border-gray-600',
+                                                    'cursor-pointer bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                                                ]"
+                                            >
+                                                <input 
+                                                    type="radio" 
+                                                    name="size-choice" 
+                                                    :value="size.value" 
+                                                    v-model="selectedSize"
+                                                    class="sr-only"
+                                                >
+                                                {{ size.name }}
+                                            </label>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="flex justify-between">
                             <div class="mt-1">
