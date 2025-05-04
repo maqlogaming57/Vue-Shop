@@ -4,6 +4,8 @@ use App\Http\Controllers\User\AddressController;
 use App\Http\Controllers\User\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\Color;
+use App\Models\Size;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,4 +24,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::get('/address/province', [AddressController::class, 'getProvince'])->name('address.getProvince');
 Route::get('/address/{prov_id}/city', [AddressController::class, 'getCity'])->name('address.getCity');
+
+Route::get('/product-options', function () {
+    return response()->json([
+        'colors' => Color::all(),
+        'sizes' => Size::all()
+    ]);
+});
 

@@ -70,6 +70,15 @@ function payOrder(order) {
                                     <ol>
                                         <li v-for="(product, key) in item.product">
                                             - {{product.title}} ({{item.quantity}})
+                                            <span class="text-xs text-gray-600">
+                                                <template v-if="item.size || item.color">
+                                                    [
+                                                    <span v-if="item.size">Size: {{item.size}}</span>
+                                                    <span v-if="item.size && item.color">, </span>
+                                                    <span v-if="item.color">Color: {{item.color}}</span>
+                                                    ]
+                                                </template>
+                                            </span>
                                         </li>
                                     </ol>
                                 </div>

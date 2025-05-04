@@ -55,9 +55,10 @@ class DashboardController extends Controller
         // Set 3DS transaction for credit card to true
         Config::$is3ds = true;
 
+        $orderId = $order['order_id'] . '-' . time(); // Tambahkan timestamp
         $params = array(
             'transaction_details' => array(
-                'order_id' => $order['order_id'] . '-' . time(), // Tambahkan timestamp untuk keunikan
+                'order_id' => $orderId,
                 'gross_amount' => intval($order['gross_amount']),
             ),
             'customer_details' => array(
@@ -72,7 +73,8 @@ class DashboardController extends Controller
                 'duration' => 60, // Transaksi expired dalam 60 menit
             ),
         );
-//        dd($order);
+
+        \Log::info('Generated order_id:', ['order_id' => $orderId]);
 
         $total_product = 0;
         $total_price = $order['gross_amount'] + $order['courir_price'];
@@ -107,13 +109,10 @@ class DashboardController extends Controller
                 'transaction_status' => $transactionStatus
             ]);
 
-            // Potong timestamp dari order_id
-            $originalOrderId = preg_replace('/-\d+$/', '', $orderId);
-            
+            $originalOrderId = preg_replace('/-\d+$/', '', $orderId); // Hapus bagian timestamp
             $order = Order::where('order_id', $originalOrderId)->first();
-            
             if (!$order) {
-                \Log::error('Order not found:', ['original_order_id' => $originalOrderId]);
+                \Log::error('Order not found:', ['original_order_id' => $originalOrderId, 'full_order_id' => $orderId]);
                 return response()->json(['message' => 'Order not found'], 404);
             }
 
@@ -122,23 +121,26 @@ class DashboardController extends Controller
                 'current_status' => $order->status
             ]);
 
+            // Hanya gunakan status 'paid' dan 'unpaid'
             if ($transactionStatus == 'capture' || $transactionStatus == 'settlement') {
                 // Pembayaran berhasil
                 $order->update([
                     'status' => 'paid',
                     'paid_at' => now()
                 ]);
-            } elseif ($transactionStatus == 'pending') {
+            } else {
+                // Pembayaran belum selesai atau gagal
                 $order->update([
-                    'status' => 'pending'
-                ]);
-            } elseif ($transactionStatus == 'deny' || $transactionStatus == 'expire' || $transactionStatus == 'cancel') {
-                $order->update([
-                    'status' => 'failed'
+                    'status' => 'unpaid'
                 ]);
             }
 
             \Log::info('Payment processed successfully:', [
+                'order_id' => $order->order_id,
+                'new_status' => $order->status
+            ]);
+
+            \Log::info('Order status updated:', [
                 'order_id' => $order->order_id,
                 'new_status' => $order->status
             ]);

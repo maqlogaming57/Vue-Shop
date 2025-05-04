@@ -42,12 +42,12 @@ defineProps({
                                     <div id="actionsDropdown" class="hidden z-10 w-44 bg-white rounded divide-y divide-gray-100 shadow dark:bg-gray-700 dark:divide-gray-600">
                                         <ul class="py-1 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="actionsDropdownButton">
                                             <li>
-                                                <a href="#" class="block py-2 px-4 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">Mass Edit</a>
+                                                <a href="#" class="block py-2 px-4 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">Export Excel</a>
                                             </li>
                                         </ul>
-                                        <div class="py-1">
+                                        <!-- <div class="py-1">
                                             <a href="#" class="block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white">Delete all</a>
-                                        </div>
+                                        </div> -->
                                     </div>
                                     <button id="filterDropdownButton" data-dropdown-toggle="filterDropdown" class="w-full md:w-auto flex items-center justify-center py-2 px-4 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700" type="button">
                                         <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="h-4 w-4 mr-2 text-gray-400" viewbox="0 0 20 20" fill="currentColor">
@@ -94,8 +94,12 @@ defineProps({
                                     <th scope="col" class="px-4 py-3">Product name</th>
                                     <th scope="col" class="px-4 py-3">Category</th>
                                     <th scope="col" class="px-4 py-3">Brand</th>
+                                    <th scope="col" class="px-4 py-3">Size</th>
+                                    <th scope="col" class="px-4 py-3">Color</th>
+                                    <th scope="col" class="px-4 py-3">Qty</th>
                                     <th scope="col" class="px-4 py-3">Price</th>
                                     <th scope="col" class="px-4 py-3">Total Amount</th>
+                                    <th scope="col" class="px-4 py-3">Note</th>
                                     <th scope="col" class="px-4 py-3">Status</th>
                                     <th scope="col" class="px-4 py-3">
                                         <span class="sr-only">Actions</span>
@@ -128,11 +132,31 @@ defineProps({
                                     </td>
                                     <td class="px-4 py-3">
                                         <div v-for="item in order.items">
+                                            {{item.size}}
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div v-for="item in order.items">
+                                            {{item.color}}
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div v-for="item in order.items">
+                                            {{item.quantity}}
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div v-for="item in order.items">
                                            Rp. {{ Number(item.unit_price).toLocaleString() }}
                                         </div>
                                     </td>
                                     <td class="px-4 py-3">
                                         Rp. {{ Number(order.gross_amount).toLocaleString() }}
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div v-for="item in order.items">
+                                            {{item.note}}
+                                        </div>
                                     </td>
                                     <td class="px-4 py-3">
                                         <span v-if="order.status == 'Paid'" class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">Paid</span>

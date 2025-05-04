@@ -7,18 +7,20 @@ use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\User\AddressController;
 use App\Http\Controllers\User\CartController;
 use App\Http\Controllers\User\CheckoutController;
 use App\Http\Controllers\User\DashboardController;
-use App\Http\Controllers\User\UserController;
+use App\Http\Controllers\User\UserController as FrontendUserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 
 //user route
-Route::controller(UserController::class)->group(function () {
+Route::controller(FrontendUserController::class)->group(function () {
     Route::get('/',  'index')->name('home');
     Route::get('/about',  'about')->name('about');
     Route::get('/contact',  'contact')->name('contact');
@@ -119,6 +121,21 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::controller(OrderController::class)->group(function () {
         Route::get('order/index', 'index')->name('admin.order.index');
         Route::get('order/invoice/{id}', 'invoice')->name('admin.order.invoice');
+    });
+
+    //Report
+    Route::controller(ReportController::class)->group(function () {
+        Route::get('report/index', 'index')->name('admin.report.index');
+    });
+
+    //Add Users
+    Route::controller(UserController::class)->group(function () {
+        Route::get('users/index', 'index')->name('admin.users.index');
+    });
+
+    //users
+    Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::resource('users', UserController::class);
     });
 });
 //end admin route

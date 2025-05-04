@@ -61,38 +61,50 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        $product = new Product;
-        $product->title = $title = $request->title;
-        $product->slug = str($title)->slug();
-        $product->price = $request->price;
-        $product->quantity = $request->quantity;
-        $product->description = $request->description;
-        $product->category_id = $request->category_id;
-        $product->brand_id = $request->brand_id;
+        try {
+            $request->validate([
+                'title' => 'required|string|max:200',
+                'price' => 'required|numeric|min:0',
+                'quantity' => 'required|integer|min:0',
+                'description' => 'nullable|string',
+                'category_id' => 'required|exists:categories,id',
+                'brand_id' => 'required|exists:brands,id',
+                'product_images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+            ]);
 
-        if($product->save()){
-            //check if product has images upload
-
-            if ($request->hasFile('product_images')) {
-                $productImages = $request->file('product_images');
-                foreach ($productImages as $image) {
-                    // Generate a unique name for the image using timestamp and random string
-                    $uniqueName = time() . '-' . Str::random(10) . '.' . $image->getClientOriginalExtension();
-                    // Store the image in the public folder with the unique name
-                    $image->move('product_images', $uniqueName);
-                    // Create a new product image record with the product_id and unique name
-                    ProductImage::create([
-                        'product_id' => $product->id,
-                        'image' => 'product_images/' . $uniqueName,
-                    ]);
+            $product = new Product;
+            $product->title = $title = $request->title;
+            $product->slug = Str::slug($title);
+            $product->price = $request->price;
+            $product->quantity = $request->quantity;
+            $product->description = $request->description;
+            $product->category_id = $request->category_id;
+            $product->brand_id = $request->brand_id;
+            $product->inStock = $request->quantity > 0; // Set inStock based on quantity
+            $product->published = true; // Set published to true by default
+            
+            if($product->save()){
+                if ($request->hasFile('product_images')) {
+                    $productImages = $request->file('product_images');
+                    foreach ($productImages as $image) {
+                        $uniqueName = time() . '-' . Str::random(10) . '.' . $image->getClientOriginalExtension();
+                        $image->move('product_images', $uniqueName);
+                        
+                        ProductImage::create([
+                            'product_id' => $product->id,
+                            'image' => 'product_images/' . $uniqueName,
+                        ]);
+                    }
                 }
+
+                return redirect()->route('admin.product.index')->with('success', 'Product created successfully.');
             }
 
-            return redirect()->route('admin.product.index')->with('success', 'Product created successfully.');
-        }else{
-            return redirect()->back()->with('errors', 'Failed create product');
-        }
+            return redirect()->back()->with('error', 'Failed to create product');
 
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
     }
 
     /**

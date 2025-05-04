@@ -12,6 +12,15 @@ class Product extends Model
 
     protected $guarded = ['id'];
 
+    // If you want to cast boolean fields
+    protected $casts = [
+        'inStock' => 'boolean',
+        'published' => 'boolean'
+    ];
+
+    // Make sure timestamps are enabled (should be by default)
+    public $timestamps = true;
+
     public function category(){
         return $this->belongsTo(Category::class, 'category_id');
     }
@@ -30,11 +39,6 @@ class Product extends Model
 
     public function orderItem(){
         return $this->hasMany(OrderItem::class, 'product_id');
-    }
-
-    public function orderItems()
-    {
-        return $this->hasMany(OrderItem::class);
     }
 
     //filter logic for price or categories or brands

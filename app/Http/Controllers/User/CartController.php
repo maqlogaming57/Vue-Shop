@@ -38,29 +38,45 @@ class CartController extends Controller
      */
     public function store(Request $request, Product $product)
     {
-        $quantity = $request->post('quantity', 1);
+        $quantity = $request->input('quantity', 1);
+        $size = $request->input('size');
+        $color = $request->input('color');
+        $note = $request->input('note'); // Tambahkan note
+
         $user = $request->user();
 
-        if($user){
-            $cartItem = Cart::where(['user_id' => $user->id, 'product_id' => $product->id])->first();
+        if ($user) {
+            $cartItem = Cart::where([
+                'user_id' => $user->id, 
+                'product_id' => $product->id,
+                'size' => $size,
+                'color' => $color
+            ])->first();
 
-            if($cartItem){
+            if ($cartItem) {
                 $cartItem->quantity += 1;
+                $cartItem->note = $note; // Update note jika ada
                 $cartItem->save();
-            }else{
+            } else {
                 Cart::create([
                     'user_id' => $user->id,
                     'product_id' => $product->id,
-                    'quantity' => 1
+                    'quantity' => $quantity,
+                    'size' => $size,
+                    'color' => $color,
+                    'note' => $note // Simpan note
                 ]);
             }
             Cache::forget('carts_global_count');
-        }else{
+        } else {
             $cartItems = CartHelper::getCookieCartItems();
             $isProductExist = false;
-            foreach ($cartItems as $item){
-                if($item['product_id'] == $product->id){
+            foreach ($cartItems as &$item) {
+                if ($item['product_id'] == $product->id && 
+                    $item['size'] == $size && 
+                    $item['color'] == $color) {
                     $item['quantity'] += $quantity;
+                    $item['note'] = $note; // Update note jika ada
                     $isProductExist = true;
                     break;
                 }
@@ -70,13 +86,16 @@ class CartController extends Controller
                     'user_id' => null,
                     'product_id' => $product->id,
                     'quantity' => $quantity,
+                    'size' => $size,
+                    'color' => $color,
+                    'note' => $note, // Tambahkan note
                     'price' => $product->price,
                 ];
             }
             CartHelper::setCookieCartItems($cartItems);
         }
 
-//        return redirect()->back()->with('success', 'cart added successfully');
+        return redirect()->back()->with('success', 'Item added to cart successfully');
     }
 
     /**
@@ -142,7 +161,18 @@ class CartController extends Controller
                 }
                 if($cart->count() > 0) {
                     return Inertia::render('User/CartList', [
-                        'carts' => $carts,
+                        'carts' => $carts->map(function ($cart) {
+                            return [
+                                'id' => $cart->id,
+                                'product_id' => $cart->product_id,
+                                'quantity' => $cart->quantity,
+                                'size' => $cart->size,
+                                'color' => $cart->color,
+                                'note' => $cart->note, // Kirim note ke frontend
+                                'product' => $cart->product,
+                                'product_image' => $cart->product_image,
+                            ];
+                        }),
                         'count' => $count,
                         'total' => $total,
                         'provinces' => $provinces,
@@ -217,24 +247,39 @@ class CartController extends Controller
      */
     public function update(Request $request, Product $product)
     {
-        $quantity = $request->integer('quantity');
         $user = $request->user();
+        
+        if ($user) {
+            $cart = Cart::where([
+                'user_id' => $user->id,
+                'product_id' => $product->id
+            ])->first();
 
-        if($user){
-            Cart::query()->where(['user_id' => $user->id, 'product_id' => $product->id])
-                ->update(['quantity' => $quantity]);
+            if ($cart) {
+                $cart->update([
+                    'quantity' => $request->quantity,
+                    'size' => $request->size,
+                    'color' => $request->color,
+                    'note' => $request->note // Update note
+                ]);
 
-        }else{
+                return redirect()->back()->with('success', 'Cart updated successfully');
+            }
+        } else {
             $cartItems = CartHelper::getCookieCartItems();
-            foreach ($cartItems as $item){
-                if($item['product_id'] == $product->id){
-                    $item['quantity'] = $quantity;
+            foreach ($cartItems as &$item) {
+                if ($item['product_id'] === $product->id) {
+                    $item['quantity'] = $request->quantity;
+                    $item['size'] = $request->size;
+                    $item['color'] = $request->color;
+                    $item['note'] = $request->note; // Update note
                     break;
                 }
             }
+            CartHelper::setCookieCartItems($cartItems);
         }
-        Cache::forget('carts_global_count');
-        return redirect()->back()->with('success', 'Success add quantity');
+
+        return redirect()->back()->with('success', 'Cart updated successfully');
     }
 
     /**

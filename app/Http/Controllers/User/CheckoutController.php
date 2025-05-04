@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Midtrans\Config;
+use Midtrans\Snap;
 
 class CheckoutController extends Controller
 {
@@ -36,56 +38,75 @@ class CheckoutController extends Controller
      */
     public function store(Request $request)
     {
-        $user = $request->user();
-        $shipping = explode('-',$request->items['shipping']);
-        $courir = $shipping[0];
-        $courir_type = $shipping[1];
-        $courir_price = $shipping[2];
-        $total = $request->total;
-        $userAddress = UserAddress::where('user_id', $user->id)->where('isMain', 1)->first();
+        try {
+            $user = $request->user();
+            $shipping = explode('-', $request->items['shipping']);
+            $courir = $shipping[0];
+            $courir_type = $shipping[1];
+            $courir_price = $shipping[2];
+            $total = $request->total;
+            $userAddress = UserAddress::where('user_id', $user->id)->where('isMain', 1)->first();
 
-        $order_id = 'order-'.now()->format('Y').$request->user()->id.now()->format('Hm-s').rand(1, 10);
-
-        $cartItems = Cart::with('product')->where(['user_id' => $user->id])->whereNull('paid_at')->get();
-
-        $order = new Order;
-        $order->order_id = $order_id;
-        $order->user_id = $user->id;
-        $order->status = 'Unpaid';
-        $order->gross_amount = $total;
-        $order->courir = $courir;
-        $order->courir_type = $courir_type;
-        $order->courir_price = $courir_price;
-        $order->created_by = $user->id;
-        $order->user_address_id = $userAddress->id;
-        if($order->save()){
-            foreach ($cartItems as $cartItem) {
-                OrderItem::create([
-                    'order_id' => $order->id, // Assuming you have an 'id' field in your orders table
-                    'product_id' => $cartItem->product_id,
-                    'quantity' => $cartItem->quantity,
-                    'unit_price' => $cartItem->product->price, // You may adjust this depending on your logic
-                ]);
-            $cart = Cart::findOrFail($cartItem->id);
-            $cart->delete();
+            if (!$userAddress) {
+                return redirect()->back()->with('error', 'Main address not found');
             }
-            Cache::forget('carts_global_count');
-            $paymentData = [
-                'order_id' => $order->id,
-                'amount' => $total,
-                'status' => 'pending',
-                'type' => 'online',
-                'created_by' => $user->id,
-                'updated_by' => $user->id,
-            ];
 
-            Payment::create($paymentData);
+            $order_id = 'order-'.now()->format('Y').$user->id.now()->format('Hm-s').rand(1, 10);
+            $cartItems = Cart::with('product')->where(['user_id' => $user->id])->whereNull('paid_at')->get();
 
-            return redirect()->route('dashboard')->with('success', 'Checkout succesfully');
-        }else{
+            if ($cartItems->isEmpty()) {
+                return redirect()->back()->with('error', 'Cart is empty');
+            }
+
+            $order = new Order;
+            $order->order_id = $order_id;
+            $order->user_id = $user->id;
+            $order->status = 'Unpaid';
+            $order->gross_amount = $total;
+            $order->courir = $courir;
+            $order->courir_type = $courir_type;
+            $order->courir_price = $courir_price;
+            $order->created_by = $user->id;
+            $order->user_address_id = $userAddress->id;
+
+            if($order->save()) {
+                foreach ($cartItems as $cartItem) {
+                    OrderItem::create([
+                        'order_id' => $order->id,
+                        'product_id' => $cartItem->product_id,
+                        'quantity' => $cartItem->quantity,
+                        'unit_price' => $cartItem->product->price,
+                        'size' => $cartItem->size,
+                        'color' => $cartItem->color,
+                        'note' => $cartItem->note,
+                    ]);
+                    
+                    $cart = Cart::findOrFail($cartItem->id);
+                    $cart->delete();
+                }
+
+                Cache::forget('carts_global_count');
+
+                $paymentData = [
+                    'order_id' => $order->id,
+                    'amount' => $total,
+                    'status' => 'pending',
+                    'type' => 'online',
+                    'created_by' => $user->id,
+                    'updated_by' => $user->id,
+                ];
+
+                Payment::create($paymentData);
+
+                return redirect()->route('dashboard')->with('success', 'Checkout successfully');
+            }
+
             return redirect()->route('cart.show')->with('error', 'Checkout failed');
-        }
 
+        } catch (\Exception $e) {
+            \Log::error('Checkout Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Checkout failed: ' . $e->getMessage());
+        }
     }
 
     public function success(Request $request)

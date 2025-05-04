@@ -11,6 +11,16 @@ class Cart extends Model
 
     protected $guarded = ['id'];
 
+    // Tambahkan fillable fields untuk size dan color
+    protected $fillable = [
+        'user_id',
+        'product_id',
+        'quantity',
+        'size',
+        'color',
+        'note', // Menambahkan field note
+    ];
+
     public function product(){
         return $this->belongsTo(Product::class, 'product_id');
     }

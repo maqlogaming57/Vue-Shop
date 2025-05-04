@@ -5,7 +5,7 @@ const brand_global = usePage().props.brand_global;
 
 </script>
 
-<template>
+<!-- <template>
     <div class="container-x flex flex-col justify-center items-center mx-auto px-6 bg-white dark:bg-gray-900">
         <div class=" section-title flex justify-between items-center mb-5">
             <div>
@@ -21,4 +21,4 @@ const brand_global = usePage().props.brand_global;
             </div>
         </div>
     </div>
-</template>
+</template> -->

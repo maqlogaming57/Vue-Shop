@@ -3,21 +3,32 @@ import {Head, Link, router, usePage} from "@inertiajs/vue3";
 import App from "@/Layouts/App.vue";
 import {ElNotification} from "element-plus";
 import {Splide, SplideSlide} from "@splidejs/vue-splide";
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 defineProps({
-    product:Object,
-})
+    product: Object,
+});
 
 const auth = usePage().props.auth;
 const selectedColor = ref('white');
-const selectedSize = ref('M'); // Add this line
+const selectedSize = ref('M');
+
+// Tambahkan watch untuk debug
+watch(selectedColor, (newColor) => {
+    console.log("Selected color changed to:", newColor);
+});
+
+watch(selectedSize, (newSize) => {
+    console.log("Selected size changed to:", newSize);
+});
 
 const colors = [
     { name: 'White', class: 'bg-white', selectedClass: 'ring-gray-400', value: 'white' },
     { name: 'Black', class: 'bg-black', selectedClass: 'ring-gray-900', value: 'black' },
     { name: 'Red', class: 'bg-red-500', selectedClass: 'ring-red-500', value: 'red' },
     { name: 'Blue', class: 'bg-blue-500', selectedClass: 'ring-blue-500', value: 'blue' },
+    { name: 'Green', class: 'bg-green-500', selectedClass: 'ring-green-500', value: 'green' },
+    { name: 'Yellow', class: 'bg-yellow-500', selectedClass: 'ring-yellow-500', value: 'yellow' },
 ];
 
 const sizes = [
@@ -26,27 +37,54 @@ const sizes = [
     { name: 'L', value: 'L' },
     { name: 'XL', value: 'XL' },
     { name: 'XXL', value: 'XXL' },
-    { name: 'XXL', value: 'XXL' },
     { name: '3L', value: '3L' },
     { name: '4L', value: '4L' },
     { name: '5L', value: '5L' },
 ];
 
 const addToCart = (product) => {
+    // Log data sebelum mengirim untuk debugging
+    console.log("Adding to cart:", {
+        product_id: product.id,
+        color: selectedColor.value,
+        size: selectedSize.value
+    });
+    
     router.post(route('cart.store', product), {
         color: selectedColor.value,
-        size: selectedSize.value, // Add this line
+        size: selectedSize.value,
+    }, {
+        preserveScroll: true, // Tambahkan ini untuk mencegah scroll ke atas setelah proses
+        onBefore: () => {
+            // Validasi sebelum mengirim
+            if (!selectedColor.value || !selectedSize.value) {
+                ElNotification({
+                    title: 'Warning',
+                    message: 'Please select color and size',
+                    type: 'warning',
+                });
+                return false;
+            }
+        },
         onSuccess: (page) => {
             if (page.props.flash.success) {
                 ElNotification({
                     title: 'Success',
                     message: page.props.flash.success,
                     type: 'success',
-                })
+                });
             }
         },
-    })
-}
+        onError: (errors) => {
+            console.error("Errors:", errors);
+            ElNotification({
+                title: 'Error',
+                message: 'Failed to add product to cart',
+                type: 'error',
+            });
+        }
+    });
+};
 
 const sampleImage = [
     {
@@ -60,7 +98,7 @@ const sampleImage = [
         href: '#',
         imageSrc: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRqEWgS0uxxEYJ0PsOb2OgwyWvC0Gjp8NUdPw&usqp=CAU',
     },{
-        id: 2,
+        id: 3,
         name: 'Sample 3',
         href: '#',
         imageSrc: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRqEWgS0uxxEYJ0PsOb2OgwyWvC0Gjp8NUdPw&usqp=CAU',
@@ -78,19 +116,18 @@ const sampleImage = [
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 rounded-lg bg-white dark:bg-gray-800 px-10 py-12">
                     <div class="w-full">
                         <Splide :options="{ type : 'loop', gap: '1rem', autoplay: true}" aria-label="My Favorite Images">
-                            <SplideSlide v-if="product.product_images.length" v-for="item in product.product_images">
+                            <SplideSlide v-if="product.product_images && product.product_images.length" v-for="item in product.product_images" :key="item.id">
                                 <div class="h-52 max-h-52 lg:h-[500px] lg:max-h-[500px]">
-                                <img class="w-full h-52 lg:h-[500px] object-cover object-center rounded" :src="`/${item.image}`">
+                                    <img class="w-full h-52 lg:h-[500px] object-cover object-center rounded" :src="`/${item.image}`">
                                 </div>
-
                             </SplideSlide>
-                            <SplideSlide v-else v-for="(simg, key) in sampleImage">
+                            <SplideSlide v-else v-for="(simg, key) in sampleImage" :key="key">
                                 <img class="w-full lg:h-auto h-64 object-cover object-center rounded" :src="simg.imageSrc">
                             </SplideSlide>
                         </Splide>
                     </div>
                     <div class="lg:pl-10 lg:py-6 mt-6 lg:mt-0">
-                        <h2 class="text-sm title-font text-gray-500 tracking-widest dark:text-gray-100">{{ product.brand.name }}</h2>
+                        <h2 class="text-sm title-font text-gray-500 tracking-widest dark:text-gray-100">{{ product.brand ? product.brand.name : 'Brand' }}</h2>
                         <h1 class="text-gray-900 text-3xl title-font font-medium mb-1 dark:text-gray-100">{{ product.title }}</h1>
                         <div class="flex mb-4">
                               <span class="flex items-center">
@@ -132,45 +169,47 @@ const sampleImage = [
                         <p class="leading-relaxed dark:text-gray-100">{{ product.description }}</p>
                         <div class="flex mt-6 items-center pb-5 border-b-2 border-gray-100 mb-5">
                             <div class="flex flex-col gap-4">
-                                <!-- Existing color selector -->
+                                <!-- Product stock -->
                                 <div class="flex items-center">
                                     <p class="text-gray-900 dark:text-gray-100 mr-6">Stock : {{product.available_stock}}</p>
-                                    
-                                    <div class="flex items-center space-x-3">
-                                        <span class="text-gray-900 dark:text-gray-100">Color :</span>
-                                        <div class="flex items-center space-x-2">
-                                            <template v-for="color in colors" :key="color.name">
-                                                <label
-                                                    :class="[
-                                                        'relative -m-0.5 flex cursor-pointer items-center justify-center rounded-full p-0.5 focus:outline-none',
-                                                        selectedColor === color.value ? 'ring ring-offset-1' : '',
-                                                        color.selectedClass
-                                                    ]"
+                                </div>
+                                
+                                <!-- Color selector -->
+                                <div class="flex items-center space-x-3">
+                                    <span class="text-gray-900 dark:text-gray-100">Color :</span>
+                                    <div class="flex items-center space-x-2">
+                                        <template v-for="color in colors" :key="color.name">
+                                            <label
+                                                :class="[
+                                                    'relative -m-0.5 flex cursor-pointer items-center justify-center rounded-full p-0.5 focus:outline-none',
+                                                    selectedColor === color.value ? 'ring ring-offset-1' : '',
+                                                    color.selectedClass
+                                                ]"
+                                            >
+                                                <input 
+                                                    type="radio" 
+                                                    name="color-choice" 
+                                                    :value="color.value" 
+                                                    v-model="selectedColor"
+                                                    class="sr-only"
+                                                    @change="() => console.log('Color selected:', color.value)"
                                                 >
-                                                    <input 
-                                                        type="radio" 
-                                                        name="color-choice" 
-                                                        :value="color.value" 
-                                                        v-model="selectedColor"
-                                                        class="sr-only"
-                                                    >
-                                                    <span
-                                                        :class="[
-                                                            'h-8 w-8 rounded-full border border-black border-opacity-10',
-                                                            color.class
-                                                        ]"
-                                                        :aria-label="color.name"
-                                                    />
-                                                </label>
-                                            </template>
-                                        </div>
+                                                <span
+                                                    :class="[
+                                                        'h-8 w-8 rounded-full border border-black border-opacity-10',
+                                                        color.class
+                                                    ]"
+                                                    :aria-label="color.name"
+                                                />
+                                            </label>
+                                        </template>
                                     </div>
                                 </div>
 
-                                <!-- Add new size selector -->
+                                <!-- Size selector -->
                                 <div class="flex items-center space-x-3">
                                     <span class="text-gray-900 dark:text-gray-100">Size :</span>
-                                    <div class="flex items-center space-x-2">
+                                    <div class="flex items-center space-x-2 flex-wrap gap-y-2">
                                         <template v-for="size in sizes" :key="size.value">
                                             <label
                                                 :class="[
@@ -187,11 +226,17 @@ const sampleImage = [
                                                     :value="size.value" 
                                                     v-model="selectedSize"
                                                     class="sr-only"
+                                                    @change="() => console.log('Size selected:', size.value)"
                                                 >
                                                 {{ size.name }}
                                             </label>
                                         </template>
                                     </div>
+                                </div>
+                                
+                                <!-- Display selected options for debugging -->
+                                <div class="text-sm text-gray-600 dark:text-gray-400">
+                                    Selected options: {{ selectedColor }} / {{ selectedSize }}
                                 </div>
                             </div>
                         </div>
@@ -200,21 +245,20 @@ const sampleImage = [
                                 <span class="title-font font-medium text-2xl text-gray-900 dark:text-gray-100">Rp. {{ Number(product.price).toLocaleString() }}</span>
                             </div>
                             <div class="flex">
-                                <div class="flex bg-blue-600 px-3 rounded-full items-center   transition duration-200 hover:scale-110 hover:bg-blue-800">
-                                    <a v-if="auth.user" @click="addToCart(product)" class="cursor-pointer inline-flex">
+                                <div class="flex bg-blue-600 px-3 rounded-full items-center transition duration-200 hover:scale-110 hover:bg-blue-800">
+                                    <a v-if="auth.user" @click="addToCart(product)" class="cursor-pointer inline-flex py-2">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-white">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
                                         </svg>
 
                                         <span class="text-white ml-2">Add to cart</span>
                                     </a>
-                                    <Link v-else :href="route('login')" class="cursor-pointer inline-flex">
+                                    <Link v-else :href="route('login')" class="cursor-pointer inline-flex py-2">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-white">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
                                         </svg>
                                         <span class="text-white ml-2">Add to cart</span>
                                     </Link>
-
                                 </div>
                                 <button class="rounded-full w-10 h-10 bg-gray-200 p-0 border-0 inline-flex items-center justify-center text-gray-500 ml-4">
                                     <svg fill="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="w-5 h-5" viewBox="0 0 24 24">
