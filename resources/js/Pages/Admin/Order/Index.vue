@@ -1,12 +1,26 @@
 <script setup>
-import {Head, Link} from "@inertiajs/vue3";
+import {Head, Link, router} from "@inertiajs/vue3";  // Add router here
 import AdminLayout from "@/Layouts/AdminLayout.vue";
 import Paginate from "@/Components/Paginate.vue";
 import {DArrowLeft, DArrowRight, Document} from "@element-plus/icons-vue";
+import { ElNotification } from 'element-plus';
 
 defineProps({
     orders:Object,
-})
+});
+
+const updateAwb = async (order) => {
+    try {
+        await router.patch(route('admin.order.update-awb', order.id), {
+            awb: order.awb
+        }, {
+            preserveScroll: true,
+            preserveState: true
+        });
+    } catch (error) {
+        console.error('Error updating AWB:', error);
+    }
+};
 </script>
 
 <template>
@@ -91,15 +105,14 @@ defineProps({
                                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                 <tr>
                                     <th scope="col" class="px-4 py-3">#</th>
-                                    <th scope="col" class="px-4 py-3">Product name</th>
-                                    <th scope="col" class="px-4 py-3">Category</th>
-                                    <th scope="col" class="px-4 py-3">Brand</th>
-                                    <th scope="col" class="px-4 py-3">Size</th>
-                                    <th scope="col" class="px-4 py-3">Color</th>
-                                    <th scope="col" class="px-4 py-3">Qty</th>
+                                    <th scope="col" class="px-4 py-3">Products Name</th>
+                                    <!-- <th scope="col" class="px-4 py-3">Category</th>
+                                    <th scope="col" class="px-4 py-3">Brand</th> -->
+                                    <th scope="col" class="px-4 py-3">Size/Color/Qty</th>
                                     <th scope="col" class="px-4 py-3">Price</th>
                                     <th scope="col" class="px-4 py-3">Total Amount</th>
                                     <th scope="col" class="px-4 py-3">Note</th>
+                                    <th scope="col" class="px-4 py-3">AWB</th>
                                     <th scope="col" class="px-4 py-3">Status</th>
                                     <th scope="col" class="px-4 py-3">
                                         <span class="sr-only">Actions</span>
@@ -116,7 +129,7 @@ defineProps({
                                             </div>
                                         </div>
                                     </th>
-                                    <td class="px-4 py-3">
+                                    <!-- <td class="px-4 py-3">
                                         <div v-for="item in order.items">
                                             <div v-for="prod in item.product">
                                                     {{prod.category.name}}
@@ -129,20 +142,10 @@ defineProps({
                                                 {{prod.brand.name}}
                                             </div>
                                         </div>
-                                    </td>
+                                    </td> -->
                                     <td class="px-4 py-3">
                                         <div v-for="item in order.items">
-                                            {{item.size}}
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <div v-for="item in order.items">
-                                            {{item.color}}
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-3">
-                                        <div v-for="item in order.items">
-                                            {{item.quantity}}
+                                            {{item.color}}/{{item.size}}/{{item.quantity}}
                                         </div>
                                     </td>
                                     <td class="px-4 py-3">
@@ -156,6 +159,20 @@ defineProps({
                                     <td class="px-4 py-3">
                                         <div v-for="item in order.items">
                                             {{item.note}}
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div v-if="order.status === 'Paid'">
+                                            <input 
+                                                type="text" 
+                                                v-model="order.awb"
+                                                @change="updateAwb(order)"
+                                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 dark:bg-gray-700 dark:border-gray-600"
+                                                :placeholder="order.awb || 'Input AWB number'"
+                                            />
+                                        </div>
+                                        <div v-else>
+                                            {{ order.awb || '-' }}
                                         </div>
                                     </td>
                                     <td class="px-4 py-3">

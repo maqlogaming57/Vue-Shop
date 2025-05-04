@@ -123,6 +123,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
         Route::get('order/invoice/{id}', 'invoice')->name('admin.order.invoice');
     });
 
+    //AWB
+    Route::patch('/admin/order/{order}/update-awb', [OrderController::class, 'updateAwb'])->name('admin.order.update-awb');
+
     //Report
     Route::controller(ReportController::class)->group(function () {
         Route::get('report/index', 'index')->name('admin.report.index');

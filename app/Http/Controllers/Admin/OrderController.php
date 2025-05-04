@@ -13,17 +13,13 @@ class OrderController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index()
     {
-        $orders = Order::with('items', 'items.product', 'items.product.category', 'items.product.brand', 'items.product.product_images')
-            ->when($request->search, function ($query, $search) {
-            $query->where('title', 'like', '%' . $search . '%')
-                ->OrWhere('description', 'like', '%' . $search . '%')
-                ->OrWhere('price', 'like', '%' . $search . '%');
-            })
+        $orders = Order::with(['items.product'])
             ->latest()
-            ->fastPaginate(10);
-        return Inertia::render('Admin/Order/Index',[
+            ->paginate(10);
+
+        return Inertia::render('Admin/Order/Index', [
             'orders' => $orders
         ]);
     }
@@ -104,5 +100,25 @@ class OrderController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    /**
+     * Update AWB for the specified order.
+     */
+    public function updateAwb(Request $request, Order $order)
+    {
+        $validated = $request->validate([
+            'awb' => 'required|string|max:100'
+        ]);
+
+        try {
+            $order->update([
+                'awb' => $validated['awb']
+            ]);
+
+            return redirect()->back()->with('success', 'AWB number has been updated');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to update AWB number');
+        }
     }
 }
